@@ -1,0 +1,14 @@
+/target/
+/.idea/
+/plugins/push-consumer-plugin/target/
+/plugins/push-consumer-plugin/.scannerwork/
+/plugins/pull-provider-plugin/target/
+/plugins/pull-provider-plugin/.scannerwork/
+/plugins/push-provider-plugin/target/
+/plugins/subscribe-consumer-plugin/target/
+/plugins/subscribe-consumer-plugin/.scannerwork/
+**/*.iml
+
+/plugins/subscribe-provider-plugin/target/
+/plugins/pull-consumer-plugin/target/
+**/THIRD-PARTY.txt

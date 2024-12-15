@@ -1,0 +1,34 @@
+= Pull Provider Plugin Overview
+
+== Introduction to the Pull Provider Plugin
+
+The pull provider plugin is used to allow the Legacy System to send a message into the CISE Network as a response to a previously received PullRequest asking for information.
+This plugin implements part of the PullRequest-PullResponse communication pattern of the CISE Service Model, where the original request was a CISE PullRequest message,
+and here we are preparing an answer message that the plugin will build and send as a CISE PullResponse.
+
+The main Java classes that compose the module are:
+
+- `PullProviderPlugin` extends the `CiseBasePlugin` interface and it is the bridge to the generic adaptor and it will be called during the initialization phase of the plugin. It has four methods that should be implemented in order to send to the Generic Adaptor (and retrieve) all the required objects to enable the two-way communication with it.
+
+- `ReceiveFromLegacySystemAdapter` creates the CISE payload message from the data received from the legacy system when the PullResponse should be created.
+
+- `SendToLegacySystemAdapter` receives the CISE Pull Request message from the CISE Network (passing through the generic adaptor) and writes it in a file.
+
+- `PullProviderPluginConfig` extends the `PluginConfig` interface in order to specify the name of the plugin's properties file and to add any configuration that is needed (in the current example it adds the configuration for the Spark Server)
+
+- `PullProviderPluginReceiverServer` provides an example http server (Spark) to receive the legacy system data. This internal Java Spark server is started to facilitate the transmission of information from the Legacy System to the plugin.
+
+== Plugin Activity
+In this chapter we will explain how the procedure of receiving from the CISE Network and from the Legacy System will impact the implementation of the plugin
+
+=== Receiving the Pull-Request
+In this scenario, the information is coming from the CISE Network. It is forwarded by the generic adaptor to the plugin through the class *SendToLegacySystemAdapter*. This class is exposed automatically to the generic adaptor through the *PullProviderPlugin* class.
+In this example, when a message is received, it will be simply written in the file system.
+The Stakeholders that require a Pull Provider plugin, may revisit the implementation of the method `updateLegacySystem` and add their business logic to translate the CISE information into the Legacy System format and forward it.
+
+=== Creating the Pull-Response
+In this scenario, the information is coming from the Legacy System. It is sent by the Legacy System to the Http Server implemented by *PullProviderPluginReceiverServer*. As a typical http controller, when a message is received, a request handling function is called. In the current example, the function that handles the information received by the Legacy System is the `handlePost` method.
+
+Whenever information is received from the Legacy System, this data will have to go through the plugin's implementation of the `ReceiveFromLegacySystemPort` i.e. the `ReceiveFromLegacySystemAdapter` in order to eventually reach the Generic Adaptor and be sent to the CISE Node.
+
+So, the plugin must implement the `ReceiveFromLegacySystemAdapter` class and call the method `handleIncomingLegacyData` when the information is received from the Legacy System. This method will eventually ask for the translation of the Legacy System information into CISE so effectively it will call the implementation of the method `handleCustomTranslation`.

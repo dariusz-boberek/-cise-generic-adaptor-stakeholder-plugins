@@ -1,0 +1,66 @@
+== Introduction to Generic Adaptor Plugin Development
+In order to create a Plugin for the Generic Adaptor the following steps should be taken:
+
+. The new module must be inside the plugin module. Copy one of the modules inside the *plugins* module of this project
+. Update the name and the artifact-id of the module in the plugin's *pom.xml*
+. Create / Modify a class that extends the *CiseBasePlugin* class
+. Update, inside the *pom.xml* of the plugin, the required properties referring to the plugin manifest configuration:
++
+[cols="1,2,3", options="header"]
+|===
+|Property of the manifest file for plugin jars
+|Explanation
+|Required
+|plugin.id
+|The id of the plugin. It must be unique across all plugins that are added to the Generic Adaptor.
+Example:
+<plugin.id>pull-provider-plugin</plugin.id>
+|Yes
+
+|plugin.class
+|The main entry point class of the plugin. When instantiated, pf4j loads this class first and this class should extend the Plugin of pf4j. In the Generic Adaptor, in order to streamline this requirement, the class CiseBasePlugin must be extended by each plugin’s main class (see section 5.3).
+Example:
+<plugin.class>eu.cise.adaptor.PullProviderPlugin</plugin.class>
+|Yes
+
+|plugin.version
+|The version of the current plugin. This can be used by the Stakeholders so that they can understand the current version of the plugin code deployed in an instance of the Generic Adaptor. It may also be used for plugins interdependencies definition (by using the plugin.dependencies). This version is up to the stakeholders to update based on their requirements.
+Example:
+<plugin.version>1.0-SNAPSHOT</plugin.version>
+|Yes
+
+|plugin.description
+|A simple description of the plugin. Only used for information.
+Example:
+<plugin.description>pull-provider-plugin</plugin.description>
+|No
+
+|plugin.provider
+|The name of the provider of the plugin. It can be left empty but it is added for completeness.
+Example:
+<plugin.provider>JRC</plugin.provider>
+|No
+
+|plugin.dependencies
+|If there are dependencies between other plugins they can be defined using this property. The plugin examples offered by JRC do not have any dependencies among them
+Example:
+<plugin.dependencies/> (no dependencies)
+<plugin.dependencies/>pluginB >= 1.0.0 & <2.0.0 </plugin.dependencies/> (the current plugin has a dependency on pluginB between version 1.0.0 and 2.0.0
+|No
+|===
++
+. Create / modify an interface that extends the *PluginConfig* interface. This interface should hold all the configuration properties needed for the plugin. Also, in this interface, you should define the name of the properties file for the plugin which should be unique across all the plugins used. There are some standard properties defined in the *PluginConfig* interface, but you can also add further properties to allow for the plugin customization. Please refer to the
+link:plugin-configuration-overview.adoc[Plugin Configuration Overview] for further information
+. Build the plugin using the command `mvn clean install` at the base directory of this project
+. Copy the jar file generated in the `target/` directory of the plugin module into the `plugin/` directory of the cise generic adaptor installation. The jar file should have a name similar to: `<artifact-id>-<version>-all.jar`
+. The jar file from the previous step along with its configuration *(<desired_name>.properties)* file should be placed in the *plugins* directory of the Generic Adaptor instance.
+. Run the adaptor using the   `cise-generic-adaptor run` command and verify that the plugin has been appropriately initiated through the logs of the cise-generic-adaptor
+. Continue the implementation of your plugin following the *CiseBasePlugin* class requirements to implement all required methods based on your use case.
+
+**Build and Generate the THIRD-PARTY.txt**
+
+In case you need to generate the list of licenses used in the project in the file: `target/generated-sources/license/THIRD-PARTY.txt`
+you need to activate the `gen-third-party` maven profile through the command:
+[source,shell]
+mvn clean install -Dgen-third-party
+

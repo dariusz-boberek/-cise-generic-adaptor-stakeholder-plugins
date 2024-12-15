@@ -1,0 +1,138 @@
+== Plugin Configuration and Customization
+=== Plugin Configuration Properties
+
+The configuration of each plugin revolves around two types of properties:
+
+===== Mandatory Properties:
+
+These are crucial for the basic functioning of the plugin, defining its primary role and communication pattern within the CISE framework. These properties are defined in the PluginConfig interface that every Generic Adaptor plugin should extend in order to add its own properties if required and to define the name of the properties file for the plugin
+
+[cols="1,2,3", options="header"]
+|===
+| Property
+| Description
+| Example
+
+| `service-id`
+| The unique identifier of the service in the CISE network, following a URN scheme.
+| `node02.vessel.pull.provider`
+
+| `service-role`
+| Defines the role of the service in CISE communication, either 'Provider' or 'Consumer'.
+| `Provider`
+
+| `service-operation`
+| Type of communication pattern the service supports, like Pull, Push, or Subscribe.
+| `Pull`
+
+| `service-type`
+| The main data type or entity the service handles, indicating its primary function.
+| `VesselService`
+|===
+
+===== Non-Mandatory Properties:
+
+These properties below are extra properties defined in the plugin examples (`plugins/pull-provider-plugin/src/main/java/eu/cise/adaptor/plugin/config/PullProviderPluginConfig.java` )shared with this project, and they offer additional configuration examples and customization options, allowing the plugin to be fine-tuned for specific operational scenarios or data formats. The Stakeholder can add more properties on the configuration class based on their requirements. Example definition of these properties can ben found in the `plugins/pull-consumer-plugin/src/test/resources/config/pull-consumer-plugin.properties`. The table below offers an explanation of their current example usage
+
+[cols="1,2,3", options="header"]
+|===
+| Property
+| Description
+| Example
+
+| `adaptor-http.port`
+| The port where the Spark Server used in the example plugin will listen
+|`9791`
+
+| `adaptor-http.known-context`
+| Context path for receiving required information to build a PullRequest Known example using PayloadSelector via HTTP.
+| `/legacy/incoming`
+
+| `adaptor-http.unknown-context`
+| Context path for receiving required information to build a PullRequest Unknown example using PayloadSelector via HTTP.
+| `/legacy/incoming/unknown`
+
+| `adaptor-http.port`
+| Port number for the HTTP connection.
+| `9091`
+
+| `legacy-http.port`
+| Port number for communication with the legacy system.
+| `9092`
+
+| `profile.{number}`
+| The profile used to discover unknown recipient services. It must be defined if the plugin needs to communicate with unknown patterns.
+
+|  You can see below 3 profiles being defined in a way that is elastic. The profiles can be used by constructing them through the Config Class and they are used to set up the `servce-profile-index` in the requests for PullRequest Unknown pattern:
+
+        profile.0.community=Customs
+        profile.0.country=ES
+        profile.0.data_freshness=NearlyRealTime
+        profile.0.function=CustomsMonitoring
+        profile.0.sea_basin=ArcticOcean
+
+        profile.1.community=FisheriesControl
+        profile.1.country=IT
+
+        profile.2.country=FR
+
+|===
+
+====== Properties File Structure
+
+Each plugin’s configuration is governed by a properties file, typically named following the pattern {plugin-name}.properties. This file is defined in a class extending PluginConfig, ensuring a standardized approach to plugin configuration.
+
+For example, in a plugin class such as `plugins/pull-provider-plugin/src/main/java/eu/cise/adaptor/plugin/config/PullProviderPluginConfig.java`, the properties file might be referenced as follows:
+
+[source,java]
+----
+@Config.Sources({"file:${adaptor.pluginsDir}/pull-provider-plugin.properties",
+        "classpath:config/pull-provider-plugin.properties"})
+public interface PullProviderPluginConfig extends PluginConfig {
+    // ... other methods and configurations
+}
+----
+
+The properties file is deployed alongside the plugin's executable jar in the plugins directory, maintaining a clean separation of configuration for each plugin. This approach allows for isolated adjustments to individual plugins without impacting the broader system.
+
+====== Handling Discovery Profiles for Unknown Communication Patterns
+
+In the `pull-consumer-plugin` example, in order to read profile properties, the `DiscoveryProfileConfigurationReader` class is used. This class converts them into `ServiceProfile` objects. It iterates through the defined profiles grouped by index number `profile.{number}`, creating `ServiceProfile` instances.
+
+So, to initialize profiles for example in the `VesselPullRequestContextBuilder` class, the following code is used:
+
+[source,java]
+----
+static {
+    DiscoveryProfileConfigurationReader discoveryProfileConfigurationReader = new DiscoveryProfileConfigurationReader();
+    configDiscoveryProfiles = discoveryProfileConfigurationReader.getConfiguredProfiles(ServiceRoleType.PROVIDER);
+}
+----
+
+This snippet shows that the `DiscoveryProfileConfigurationReader` reads the profiles from the properties file and initializes them at the start of the server. Moreover, it sets up the discovery profile to search for given, as parameter, serviceRoleType. In this example, we are `Pull Consumer` so we are looking for `Pul Provider` services, which is why `ServiceRoleType.PROVIDER` is being used and finally will occur in the `DiscoveryProfile`.
+
+As an implementation example of how profiles are utilized for unknown patterns, refer to the `PullConsumerPluginReceiverServer.java`. Inside this class, the `handleGetForUnknownPattern` method begins by reading the profile index parameter (a comma-separated string) from the user request ( provided with the `service-profile-index`) and creating a list of discovery profile indexes. The indexes are then used to retrieve the corresponding profiles (`List<ServiceProfile>`) from the configuration:
+
+[source,java]
+----
+List<ServiceProfile> discoveryProfiles = serviceProfileIndexes.stream()
+        .map(configDiscoveryProfiles::get)
+        .collect(toList());
+----
+
+At the end, these profiles are passed to the `MessageDataContextManager` through the `VesselPullRequestContextBuilder` for processing:
+
+[source,java]
+----
+MessageDataContext.MessageDataContextManager messageDataContextManager = MessageDataContext.getManager()
+        .initializePullRequestUnknown(requestDiscoveryProfiles, currenResponseTimeOut, requests);
+----
+
+Next, `MessageDataContextManager` is created for the unknown pattern (using the discovery profiles instead of recipients). This object carries all the data needed to create a proper CISE Message, with the correct payload and envelope.
+
+`MessageDataContextManager` for handling unknown communication patterns has the following predefined methods:
+
+- `initializePushUnknown`
+- `initializeSubscribeConsumerUnknown`
+- `initializePullRequestUnknown`
+

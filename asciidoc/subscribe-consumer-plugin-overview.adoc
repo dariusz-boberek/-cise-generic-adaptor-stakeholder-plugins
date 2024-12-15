@@ -1,0 +1,68 @@
+= Subscribe Consumer Plugin Overview
+
+== Introduction to the Subscribe Consumer Plugin
+
+The Subscribe Consumer Plugin enables the consumption of messages from the CISE Network. Integrated via the Generic Adaptor, this plugin processes incoming CISE messages based on active subscriptions, managing the reception and logging of these messages for effective monitoring. The plugin also hosts an example that illustrates how an internal Spark Server can be used to create two REST endpoints (one for Known and another one for Unknown patterns). These REST endpoints enable the plugin to receive the Service ID of a Subscribe Provider or a list of Discovery Profiles service and create the appropriate Pull Request Subscribe Known message or Unknown respectively.
+
+The main Java classes that compose the module are:
+
+- `SubscribeConsumerPlugin` extends the `CiseBasePlugin` interface, and it is the bridge to the generic adaptor, and it will be called during the initialization phase of the plugin. It has four methods that should be implemented to enable handling of messages.
+
+- `ReceiveFromLegacySystemAdapter`  We can observe for this pattern that `ReceiveFromLegacySystemAdapter` does not use the `handleCustomTranslation` method because the implementation of `handleIncomingLegacyData` should be called without any LegacySystemPayload. Instead the creation of the Pull Request Subscribe happens on the `SubscribeConsumerPluginReceiverServer` upon accepting incoming REST requests from the Legacy System
+
+- `SendToLegacySystemAdapter` manages the reception of CISE messages from the CISE network, converting messages into XML format, saves them as files for further use, logs these actions.
+
+- `SubscribeConsumerPluginConfig` extends the `PluginConfig` interface to specify the plugin's properties file and includes necessary configurations such as settings for the HTTP server and output directory for saved messages. It also hosts the configuration for the Discovery Profiles that can be used in the Unknown pattern
+
+- `SubscribeConsumerPluginReceiverServer` this class is instantiated during the boostrap phase of the plugin and starts the Spark Server that listens for incoming requests from the Legacy System. When the requests are received, depending on the endpoint and information shared with it, it constructs the Pull Request Subscribe Known or Unknown messages and sends it to the Generic Adaptor by calling the:
+[source,java]
+----
+receiveFromLegacySystemPort.handleIncomingLegacyData(messageDataContextManager)
+----
+
+== Plugin Activity
+
+=== Managing Incoming Messages
+
+Upon the receipt of a CISE message, the `SendToLegacySystemAdapter` logs the event and processes the message. If the message is valid, it is converted into XML format and saved to a designated output directory. This procedure secures the data and logs the steps taken.
+
+=== HTTP Server Operations
+The `SubscribeConsumerPluginReceiverServer` manages incoming HTTP requests by offering two separate endpoints: one for known patterns and another for unknown patterns.
+
+- **Known Pattern Endpoint:** This endpoint is designed to handle requests where the recipient service ID is known. The server processes incoming HTTP requests focusing on parameters such as service ID. This allows for precise and targeted requests. Example call:
+`http://localhost:<adaptor-http.port>/<adaptor-http.known-context>?service-id=<subscribe_provider_service_id>`
+
+- **Unknown Pattern Endpoint:** This endpoint manages requests where the recipient service ID is not known, utilizing discovery profiles to dynamically find appropriate services. The server processes incoming HTTP requests with parameters such as service profile index. Example call:
+`http://localhost:<adaptor-http.port>/<adaptor-http.unknown-context>?service-profile-index=<index>`
+
+=== Handling Unknown Patterns
+To handle unknown communication patterns, the `SubscribeConsumerPluginReceiverServer` has been extended to manage unknown recipients using discovery profiles instead of recipients. Firstly, the `DiscoveryProfileConfigurationReader` class is used to read the discovery profiles properties from the plugin’s properties file and convert them into `ServiceProfile` objects (think of the `ServiceProfile` class as a representation of the discovery profile). These profiles are then used to discover the appropriate/matching recipient services registered in the CISE Node.
+
+To initialize profiles in the `SubscribeConsumerPluginReceiverServer` class, the following code is used:
+
+[source,java]
+----
+static {
+    DiscoveryProfileConfigurationReader discoveryProfileConfigurationReader = new DiscoveryProfileConfigurationReader();
+    configDiscoveryProfiles = discoveryProfileConfigurationReader.getConfiguredProfiles(ServiceRoleType.PROVIDER);
+}
+----
+
+The snippet shows that the `DiscoveryProfileConfigurationReader` reads the profiles from the plugin's `*.properties` file and initializes them at the start of the internal Spark server. In this example, we are a `SubscribeConsumer`, so we are looking for `SubscribeProviders`, which is why `ServiceRoleType.PROVIDER` is being used as an argument.
+
+Next, inside the `SubscribeConsumerPluginReceiverServer` class, the `handleGetForUnknownPattern` method begins by reading the profile index parameter (a comma-separated string) from the user request and creating a list of discovery profile indexes. The indexes are then used to retrieve the corresponding profiles (`List<ServiceProfile>`) from the `configDiscoveryProfiles` collection. The snippet below shows that we use only the filtered profiles as requested by the user:
+
+[source,java]
+----
+List<ServiceProfile> discoveryProfiles = serviceProfileIndexes.stream()
+        .map(configDiscoveryProfiles::get)
+        .collect(toList());
+----
+
+Finally, these profiles are passed to the `MessageDataContextManager` so that the Generic Adaptor can internally use them in the process of creating a CISE Message that will eventually be sent to the CISE Node.
+
+[source,java]
+----
+MessageDataContext.MessageDataContextManager messageDataContextManager = MessageDataContext.getManager()
+        .initializeSubscribeConsumerUnknown(discoveryProfiles);
+----

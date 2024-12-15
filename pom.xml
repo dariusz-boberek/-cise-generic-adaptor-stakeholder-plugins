@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>eu.cise.adaptor</groupId>
+    <version>3.0.0</version>
+    <artifactId>cise-generic-adaptor-stakeholder-plugins</artifactId>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>plugins</module>
+        <module>stakeholder-plugins-assembly</module>
+    </modules>
+
+    <properties>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <pf4j.version>3.9.0</pf4j.version>
+
+        <main.basedir>${project.basedir}</main.basedir>
+
+        <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
+        <surefire.java.args>-Djdk.xml.xpathExprGrpLimit=0 -Djdk.xml.xpathExprOpLimit=0 -Djdk.xml.xpathTotalOpLimit=0
+        </surefire.java.args>
+
+        <!-- CISE -->
+        <cise.libraries.version>2.3.2-2</cise.libraries.version>
+        <cise-generic-adaptor-plugin-api-version>3.0.0</cise-generic-adaptor-plugin-api-version>
+
+        <!-- tests -->
+        <junit-jupiter-engine.version>5.9.0</junit-jupiter-engine.version>
+        <hamcrest-all.version>1.3</hamcrest-all.version>
+        <assertj-core.version>3.24.2</assertj-core.version>
+        <mockito-core.version>5.1.1</mockito-core.version>
+
+        <!-- logging -->
+        <slf4j.version>1.7.36</slf4j.version>
+        <logback-version>1.2.11</logback-version>
+        <!-- spark -->
+        <spark-version>2.9.4</spark-version>
+
+
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.pf4j</groupId>
+                <artifactId>pf4j</artifactId>
+                <version>${pf4j.version}</version>
+                <!-- !!! VERY IMPORTANT -->
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>eu.cise.adaptor</groupId>
+                <artifactId>cise-generic-adaptor-plugin-api</artifactId>
+                <version>${cise-generic-adaptor-plugin-api-version}</version>
+            </dependency>
+
+
+            <!-- test dependencies -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>${junit-jupiter-engine.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-engine</artifactId>
+                <version>${junit-jupiter-engine.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-params</artifactId>
+                <version>${junit-jupiter-engine.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.hamcrest</groupId>
+                <artifactId>hamcrest-all</artifactId>
+                <version>${hamcrest-all.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj-core.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito-core.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <!--        logging-->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <!--logging implementation for testing-->
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback-version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- spark requirements -->
+            <!-- https://mvnrepository.com/artifact/org.apache.spark/spark-core -->
+            <dependency>
+                <groupId>com.sparkjava</groupId>
+                <artifactId>spark-core</artifactId>
+                <version>${spark-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.resteasy</groupId>
+                <artifactId>resteasy-jaxrs</artifactId>
+                <version>3.0.19.Final</version>
+            </dependency>
+
+            <!-- communication with test legacy system -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>2.15.2</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
+                <version>2.15.2</version>
+            </dependency>
+
+            <!-- Payload Querying -->
+            <dependency>
+                <groupId>org.jooq</groupId>
+                <artifactId>jooq</artifactId>
+                <version>3.14.4</version> <!-- compatible with Java 11 -->
+            </dependency>
+
+            <dependency>
+                <groupId>com.h2database</groupId>
+                <artifactId>h2</artifactId>
+                <version>2.1.214</version>
+                <scope>test</scope>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.1.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
+                    <configuration>
+                        <argLine>${surefire.java.args}</argLine>
+                        <includes>
+                            <include>**/*Spec.java</include>
+                            <include>**/*Test*.java</include>
+                        </includes>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>0.8.10</version>
+                    <executions>
+                        <execution>
+                            <id>prepare-agent</id>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <phase>prepare-package</phase>
+                            <goals>
+                                <goal>report</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <!-- maven dependencies plugin -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>2.9</version>
+                    <configuration>
+                        <artifactItems>
+                            <artifactItem>
+                                <groupId>eu.europa.ec.jrc.marex</groupId>
+                                <artifactId>cise-slf4j-bom</artifactId>
+                                <version>${cise.libraries.version}</version>
+                                <type>pom</type>
+                            </artifactItem>
+                            <artifactItem>
+                                <groupId>eu.europa.ec.jrc.marex</groupId>
+                                <artifactId>cise-models-bom</artifactId>
+                                <version>${cise.libraries.version}</version>
+                                <type>pom</type>
+                            </artifactItem>
+                        </artifactItems>
+                        <!-- other configurations here -->
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+    </build>
+    <!-- To generate third party txt  execute the following profile through the command: mvn clean install -Dgen-third-party -->
+    <profiles>
+        <profile>
+            <id>gen-third-party</id>
+            <activation>
+                <property>
+                    <name>gen-third-party</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>license-maven-plugin</artifactId>
+                        <version>2.0.0</version>
+                        <configuration>
+                            <skipAggregateAddThirdParty>false</skipAggregateAddThirdParty>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>download-licenses</id>
+                                <goals>
+                                    <goal>aggregate-add-third-party</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+    <repositories>
+        <repository>
+            <id>file-snapshots</id>
+            <url>file://${main.basedir}/cise-core-repo/snapshots</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+        </repository>
+
+        <repository>
+            <id>file-releases</id>
+            <url>file://${main.basedir}/cise-core-repo/releases</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+    </repositories>
+</project>

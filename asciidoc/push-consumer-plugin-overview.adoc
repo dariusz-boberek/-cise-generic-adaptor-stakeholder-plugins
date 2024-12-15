@@ -1,0 +1,21 @@
+= Push Consumer Plugin Overview
+
+== Introduction to the Push Consumer Plugin
+
+The push consumer plugin is used to accept Push messages from the CISE Node.
+
+In order to accept a Push Message, the adaptor must be representing a Push Consumer CISE Service. When another CISE Service (Push Provider) sends information to a Push Consumer, typically this information needs to be passed to the Legacy System. In the current example, the Push Message received is simply saved on disk, but it is up to the Stakeholder implementation to adapt this example to their needs.
+
+The main Java classes that compose the module are:
+
+- `PushConsumerPlugin` extends the `CiseBasePlugin` interface, and it is the bridge to the generic adaptor, and it will be called during the initialization phase of the plugin. It has three methods that should be implemented in order to return to the Generic Adaptor all the required objects to enable accepting messages from the CISE Node. Typically, the `CiseBasePlugin` defines four methods, but in the Push Consumer plugin we only need to accept data from the CISE Node so there is no need to return a `ReceiveFromLegacySystemPort` implementation and that is why we return null in this example.
+
+- `SendToLegacySystemAdapter` receives the CISE Push  message from the CISE Network (passing through the generic adaptor) and writes it in a file. This is just an example implementation but the Stakeholders can edit this class to add their business logic
+
+- `PushConsumerPluginConfig` extends the `PluginConfig` interface in order to specify the name of the plugin's properties file and to add any configuration that may be needed. For example, the communication details with the Legacy System can be added.
+
+== Plugin Activity
+
+=== Receiving the Push Message
+In this scenario, the information is coming from the CISE Network. The information is typically passed from the Generic Adaptor to the plugin by calling the plugin's implementation of the `SendToLegacySystemPort` provided to the Generic Adaptor by the `PushConsumerPlugin` class. In the current example, the implementation is the `SendToLegacySystemAdapter` and its method `updateLegacySystem` is the method called by the Generic Adaptor to pass the information it has received from the CISE Node. In this method, the stakeholders can implement their business logic. The current implementation only saves the data on disk.
+

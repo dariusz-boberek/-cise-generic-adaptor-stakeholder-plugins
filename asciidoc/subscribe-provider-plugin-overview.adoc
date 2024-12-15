@@ -1,0 +1,33 @@
+= Subscribe Provider Plugin Overview (from publish-subscribe pattern)
+
+== Introduction to the Subscribe Provider Plugin
+
+The Subscribe Provider Plugin enables legacy systems to actively participate in a publish-subscribe communication model with the CISE Network. Integrated via the Generic Adaptor, this plugin manages the transmission of information to subscribers and logs incoming subscription requests and acknowledgements from the CISE Network. The plugin hosts an example illustrating how CSV files can be used to construct CISE messages. The CSV format is specifically detailed within the plugin itself and can be reviewed through the CSV example files used in tests. The `pom.xml` of this plugin specifies its properties, ensuring it is correctly built by the `maven-assembly-plugin` as defined in the Plugin Development Guide documentation, along with its Java library dependencies.
+
+The main Java classes that compose the module are:
+
+- `SubscribeProviderPlugin` extends the `CiseBasePlugin` interface, and it is the bridge to the generic adaptor, and it will be called during the initialization phase of the plugin. It has four methods that should be implemented in order to return to the Generic Adaptor all the required objects to enable the two-way communication with it.
+
+- `ReceiveFromLegacySystemAdapter` handles incoming data from the legacy system and is responsible for processing and forwarding this data to the CISE Network. In the current example, as alternative approach we can observe, `ReceiveFromLegacySystemAdapter` does not use the `handleCustomTranslation` method as the message translation is already handled in `VesselCSVToCISE` and prepared messages are forwarded using `VesselInformationDeliver`.
+
+- `SendToLegacySystemAdapter` logs both the acknowledgements from the CISE Network and initial subscription requests from the subscribe-consumer (already processed by the CISE Node). This dual functionality ensures that messages are acknowledged properly and logs that the subscribe-consumer is registered (in the CISE Node) and ready to receive subsequent messages.
+
+- `SubscribeProviderPluginConfig` extends the `PluginConfig` interface to specify the plugin's properties file and include necessary configurations such as message format and transport settings.
+
+- Under the `translator` directory, customization classes are provided to adapt the message format between the legacy system (CSV) and the CISE Network, ensuring that the information is correctly interpreted on both ends.
+
+- Under the `cisecontext` directory, classes like `CISEPayloadBuilder` and `VesselBuilder` focus on constructing CISE-specific objects and payloads for vessel data, facilitating the structured integration and communication of legacy vessel information within the CISE network.
+
+== Plugin Activity
+
+=== Sending the Subscribe Message
+
+The process begins with the `VesselCSVFileHandler`, which periodically reads and processes CSV files containing vessel information. Each row in the CSV file is represented as a `VesselCSVToCISEEntry` object by the `VesselCSVToCISE` class, which then translates these entries into CISE messages. The `VesselPayloadBuilder` constructs the payload for these messages, ensuring they adhere to CISE Vessel object specifications. Finally, the `SubscribeProviderDeliver` coordinates the delivery of these messages to the CISE Network, ensuring timely data transmission.
+
+=== Receiving The Subscription with the PullRequest Subscribe
+
+When a PullRequest for subscription is received, `SendToLegacySystemAdapter` logs this event. The receipt of this request indicates that the CISE Node has processed and registered the subscriber, enabling the plugin to prepare for future message transmissions.
+
+=== Receiving Acknowledgement
+
+After a message is published from the legacy system to the CISE Network, the `SendToLegacySystemAdapter` processes the acknowledgement received from the network. This acknowledgement indicates whether the message was successfully received and processed by the CISE Network. The adapter logs the outcome of the message transmission, providing feedback on the success or failure of the message delivery. This process is for monitoring the status of sent messages and ensuring reliable communication between the legacy system and the CISE Network.

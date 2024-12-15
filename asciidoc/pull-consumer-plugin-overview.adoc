@@ -1,0 +1,67 @@
+= Pull Consumer Plugin Overview
+
+== Introduction to the Pull Consumer Plugin
+
+The Pull Consumer Plugin is used to enable a Legacy System interacting with this plugin to send a PullRequest to the CISE Network, managing also the processing of the response (PullResponse). This plugin is part of the PullRequest-PullResponse communication pattern of the CISE Service Model. When a Legacy System initiates communication, this plugin processes the data to generate the CISE PullRequest message. This request is then sent to the CISE Network, which is expected to respond with a CISE PullResponse. The plugin hosts an example illustrating how to use the Generic Adaptor API to construct a PullRequest that contains a Payload Selector as an example.
+
+The main Java classes that compose the module are:
+
+- `PullConsumerPlugin` extends the `CiseBasePlugin` interface and it is the bridge to the generic adaptor and it will be called during the initialization phase of the plugin. It has four methods that should be implemented in order to send to the Generic Adaptor (and retrieve) all the required objects to enable the two-way communication with it.
+
+- `ReceiveFromLegacySystemAdapter` usually handles the translation of the data received directly from the Legacy System, preparing it for conversion into a CISE PullRequest. However, this class does not make any particular use of the `handleCustomTranslation` method, as the message translation is managed in the Spark server `PullConsumerPluginReceiverServer` and the payload is set to the MessageDataContextManager through the `cisePayload` method (inside the `PullRequestKnownHelper` class), demonstrating an alternative implementation approach.
+
+- `SendToLegacySystemAdapter` not only processes the Pull Responses (by saving them on disk) from the CISE Network but also manages acknowledgments related to the PullRequest. It employs methods to identify whether acknowledgments are synchronous or asynchronous and processes them to ensure the Legacy System receives status updates.
+
+- `PullConsumerPluginConfig` extends the `PluginConfig` interface to specify the plugin’s properties file and includes configurations necessary for operation such as HTTP server settings, non-mandatory service capabilities, and the output directory for saving files. Furthermore, to enable the Unknown pattern (to send a Pull Request with a Service Profile that is used to Discover the recipients), this class also allows to setup an arbitrary number of Service Profiles through the configuration file. This setup showcases the flexibility in configuring what can be part of the initial PullRequest message.
+
+== Plugin Activity
+
+=== Sending the PullRequest
+This activity involves the `PullConsumerPluginReceiverServer`, which receives HTTP requests from the Legacy System. The server leverages the `PullRequestManager` to construct the PullRequest, integrating `PayloadSelector` elements that define detailed data requirements similar to SQL 'where' clauses, specifying which data are relevant from another message section - the payload. Additionally, this server implements a REST endpoint to manage these incoming HTTP requests efficiently, showcasing how REST endpoints facilitate dynamic and responsive interactions with legacy systems.
+
+=== Receiving the Acknowledgement
+Following the transmission of a PullRequest, the `SendToLegacySystemAdapter` processes the acknowledgments received from the CISE Network. This adapter distinguishes between synchronous and asynchronous acknowledgments and logs their statuses, ensuring that the Legacy System is informed of the success or failure of the request.
+
+=== Receiving the PullResponse
+Upon receipt of a PullResponse from the CISE Network, the `SendToLegacySystemAdapter` is responsible for processing the data, converting it to the format required by the Legacy System, and storing it in the output directory specified in the `PullConsumerPluginConfig`.
+
+=== HTTP Server Operations
+The `PullConsumerPluginReceiverServer` manages incoming HTTP requests by offering two separate endpoints: one for known patterns and another for unknown patterns.
+
+- **Known Pattern Endpoint:** This endpoint is designed to handle requests where the recipient service ID is known. The server processes incoming HTTP requests focusing on parameters such as service ID, IMO number, and a boolean 'equals' condition. This allows for precise and targeted requests. Example call:
+`http://localhost:<adaptor-http.port>/<adaptor-http.known-context>?service-id=<recipient_service_id>&imonumber=<imonumber>&equal=<true|false>`
+
+- **Unknown Pattern Endpoint:** This endpoint manages requests where the recipient service ID is not known, utilizing discovery profiles to dynamically find appropriate services. The server processes incoming HTTP requests with parameters such as service profile index, IMO number, and a boolean 'equals' condition. Example call:
+`http://localhost:<adaptor-http.port>/<adaptor-http.unknown-context>?service-profile-index=<index>&imonumber=<imonumber>&equal=<true|false>`
+
+=== Handling Unknown Patterns
+To handle the unknown communication pattern, the `PullConsumerPluginReceiverServer` has been extended to manage unknown recipients using discovery profiles instead of recipients. Firstly, the `DiscoveryProfileConfigurationReader` class is used to read the discovery profiles properties from the plugin’s properties file and convert them into `ServiceProfile` objects (think of the `ServiceProfile` class as a representation of the discovery profile). These profiles are then used to discover the appropriate/matching recipient services registered in the CISE Node.
+
+To initialize profiles in the `PullConsumer` plugin, the following code is used:
+
+[source,java]
+----
+static {
+    DiscoveryProfileConfigurationReader discoveryProfileConfigurationReader = new DiscoveryProfileConfigurationReader();
+    configDiscoveryProfiles = discoveryProfileConfigurationReader.getConfiguredProfiles(ServiceRoleType.PROVIDER);
+}
+----
+
+The snippet shows that the `DiscoveryProfileConfigurationReader` reads the profiles from the plugin's `*.properties` file and initializes them at the start of the internal Spark server. In this example, we are a `PullConsumer`, so we are looking for `PullProviders`, which is why `ServiceRoleType.PROVIDER` is being used as an argument.
+
+Next, inside the `PullConsumerPluginReceiverServer` class, the `handleGetForUnknownPattern` method begins by reading the profile index parameter (a comma-separated string) from the user request and creating a list of discovery profile indexes. The indexes are then used to retrieve the corresponding profiles (`List<ServiceProfile>`) from the `configDiscoveryProfiles` collection. The snippet below shows that we use only the filtered profiles as requested by the user:
+
+[source,java]
+----
+List<ServiceProfile> discoveryProfiles = serviceProfileIndexes.stream()
+        .map(configDiscoveryProfiles::get)
+        .collect(toList());
+----
+
+Finally, these profiles are passed to the `MessageDataContextManager` so that the Generic Adaptor can internally use them in the process of creating a CISE Message that will eventually be sent to the CISE Node.
+
+[source,java]
+----
+MessageDataContext.MessageDataContextManager messageDataContextManager = MessageDataContext.getManager()
+        .initializePullRequestUnknown(discoveryProfiles);
+----

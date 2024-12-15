@@ -1,0 +1,71 @@
+= Push Provider Plugin Overview
+
+== Introduction to the Push Provider Plugin
+
+The push provider plugin is developed to send Push messages from the legacy system to the CISE Network via the Generic Adaptor. This plugin enables the integration to the legacy systems by allowing them to actively push information. The plugin hosts an example demonstrating how CSV files can be used to construct CISE messages. The CSV format is specifically detailed within the plugin itself and can be reviewed through the CSV example files utilized in tests. Furthermore, this plugin shows an example of how the CISE Node Management API can be used to discover available services in the CISE Node. For that reason, it employes a Spark server in the `PushProviderPluginSparkServer` that exposes an endpoint (configured via `adaptor-http.port` and `adaptor-http.context` properties)
+
+The main Java classes that compose the module are:
+
+- `PushProviderPlugin` extends the `CiseBasePlugin` interface, and it is the bridge to the generic adaptor, and it will be called during the initialization phase of the plugin. It has four methods that should be implemented in order to return to the Generic Adaptor all the required objects to enable the two-way communication with it.
+
+- `ReceiveFromLegacySystemAdapter` handles incoming data from the legacy system and is responsible for processing and forwarding this data to the CISE Network. In the current example, as alternative approach we can observe, `ReceiveFromLegacySystemAdapter` does not use the `handleCustomTranslation` method as the message translation is already handled in `VesselCSVTranslator` and the `VesselPayloadBuilder` and prepared messages are forwarded using `VesselInformationDeliver`.
+
+- `SendToLegacySystemAdapter` is responsible for processing acknowledgements from the CISE Network, ensuring the legacy system is informed about the status of the messages sent.
+
+- `PushProviderPluginConfig` extends the `PluginConfig` interface in order to specify the name of the plugin's properties file and to add any configuration that is needed (in the current example it adds the configuration for CSV input, output, and error directories). It also, provides the configuration for the internal Spark Server (responsible for the Discovery requests against the CISE Node) and the definition of an arbitrary number of Service Profiles that are used as Discovery Profiles in the Push Unknown cases.
+
+- Under the `translator` directory, customization classes are provided to adapt the message format between the legacy system (CSV) and the CISE Network, ensuring that the information is correctly interpreted on both ends.
+
+- Under the `cisecontext` directory, classes like `CISEPayloadBuilder` and `VesselBuilder` focus on constructing CISE-specific objects and payloads for vessel data, facilitating the structured integration and communication of legacy vessel information within the CISE network.
+
+== Plugin Activity
+
+=== Sending the Push Message
+
+The process begins with the `VesselCSVFileHandler`, which periodically reads and processes CSV files containing vessel information. Each row in the CSV file is represented as a `VesselCSVToCISEEntry` object by the `VesselCSVToCISE` class, which then translates these entries into CISE messages. The `VesselPayloadBuilder` constructs the payload for these messages, ensuring they adhere to CISE Vessel object specifications. Finally, the `VesselInformationDeliver` coordinates the delivery of these messages to the CISE Network, utilizing the`ReceiveFromLegacySystemAdapter` for both processing the incoming data from the legacy system and sending it out to the CISE Network. This particular example implementation however, it receives an already translated payload, as illustrated where `messageDataContextManager.cisePayload(payload)` is utilized to embed the prepared message directly.
+
+=== Receiving Acknowledgement
+
+After a message is pushed from the legacy system to the CISE Network, the `SendToLegacySystemAdapter` processes the acknowledgement received from the network. This acknowledgement indicates whether the message was successfully received and processed by the CISE Network. The adapter logs the outcome of the message transmission, providing feedback on the success or failure of the message delivery. This process is for monitoring the status of sent messages and ensuring reliable communication between the legacy system and the CISE Network.
+
+
+=== Handling Unknown Patterns
+
+To handle Push unknown communication, the `PushProviderPlugin` has been extended to manage unknown recipients using discovery profiles instead of recipients. Firstly, the `DiscoveryProfileConfigurationReader` class is used to read the discovery profiles properties from the plugin’s properties file and convert them into `ServiceProfile` objects (think of the `ServiceProfile` class as a representation of the discovery profile). These profiles are then used to discover the appropriate/matching recipient services registered in the CISE Node.
+
+To initialize profiles in the `VesselInformationDeliver`, the following code is used:
+
+[source,java]
+----
+static {
+    DiscoveryProfileConfigurationReader discoveryProfileConfigurationReader = new DiscoveryProfileConfigurationReader();
+    configuredProfiles = discoveryProfileConfigurationReader.getConfiguredProfiles(ServiceRoleType.CONSUMER);
+}
+----
+
+The snippet shows that the `DiscoveryProfileConfigurationReader` reads the profiles from the plugin's `*.properties` file and initializes them at the start of the internal process. In this example, we are a `PushProvider`, so we are looking for `PushConsumers`, which is why `ServiceRoleType.CONSUMER` is being used as an argument.
+
+Next, inside the `VesselInformationDeliver` class, the `calculateDestination` method begins by reading the recipient ID. If the recipient ID starts with "unknown", it extracts the profile index from the recipient ID (e.g., `unknown_0`) and retrieves the corresponding profile from the `configuredProfiles` collection. The snippet below shows that we use only the filtered profiles as requested:
+
+[source,java]
+----
+if (recipientId.startsWith("unknown")) {
+    int profileNumber = Integer.parseInt(recipientId.split("_")[1]);
+    if (profileNumber > configuredProfiles.size()) {
+        throw new CiseAdaptorValidationException("Profile specified: " + profileNumber + " cannot be found in the configured profiles");
+    }
+    ServiceProfile serviceProfile = configuredProfiles.get(profileNumber); // get it from the configuration
+    messageDataContextManager.initializePushUnknown(Collections.singletonList(serviceProfile));
+} else {
+    messageDataContextManager.initializePushKnown(generateRecipientServiceFromId(recipientId)); // the recipients
+}
+----
+
+Also, we can observe this snippet uses `initializePushUnknown` or `initializePushKnown` and sets up `MessageDataContextManager` accordingly to known or unknown patterns.
+
+
+
+
+
+
+

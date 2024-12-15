@@ -1,0 +1,39 @@
+:doctype: book
+:icons: font
+:toc2:
+:sectlinks:
+:sectnums:
+:sectanchors:
+:sectlinks:
+
+:homepage: https://citnet.tech.ec.europa.eu/CITnet/stash/scm/marex/cise-generic-adaptor-stakeholder-plugins
+:source-highlighter: coderay
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+:source-language: properties
+
+= Generic Adaptor Stakeholder Plugins Project
+
+In order for the Generic Adaptor Stakeholder Plugins project to be built, the CISE libraries are required. The CISE stakeholders can request access to the cise-core-repo repository by sending an email to mss@emsa.europa.eu
+
+This project is created so that it can provide a starting point for CISE Stakeholders to create their plugins for the customization of the CISE Generic Adaptor.
+
+Generic Adaptor Plugins are designed to act as intermediaries, facilitating the translation and handling of data between the CISE Node and specific legacy systems. Their role is to adapt to various data types and communication protocols, ensuring seamless integration within the CISE Network.
+
+The CISE Generic Adaptor is distributed as a binary package and it contains a directory named *plugins* where the plugin jars must be placed for them to be functional.
+
+This project contains a number of plugin examples that the Stakeholders can copy and base their implementation on top of them.
+
+For detailed information, please refer to the following chapters:
+
+* link:asciidoc/cise-generic-adaptor-plugin-overview.adoc[Plugin Development Overview]
+* link:asciidoc/plugin-configuration-overview.adoc[Plugin Configuration Overview]
+* link:asciidoc/pull-consumer-plugin-overview.adoc[Pull Consumer Plugin]
+* link:asciidoc/pull-provider-plugin-overview.adoc[Pull Provider Plugin]
+* link:asciidoc/push-provider-plugin-overview.adoc[Push Provider Plugin]
+* link:asciidoc/push-consumer-plugin-overview.adoc[Push Consumer Plugin]
+* link:asciidoc/subscribe-consumer-plugin-overview.adoc[Subscribe Consumer Plugin]
+* link:asciidoc/subscribe-provider-plugin-overview.adoc[Subscribe Provider Plugin]

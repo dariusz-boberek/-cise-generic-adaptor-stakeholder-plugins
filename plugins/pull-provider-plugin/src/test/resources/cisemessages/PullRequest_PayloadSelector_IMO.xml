@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--//TODO: why its called PUSH when in reality is PullRequest? -->
+<ns4:PullRequest xmlns:ns4="http://www.cise.eu/servicemodel/v1/message/">
+  <CorrelationID>f28e1703-4c0d-48ce-aba5-e187a3321333</CorrelationID>
+  <CreationDateTime>2018-01-18T13:19:35.367+01:00</CreationDateTime>
+  <MessageID>f28e1703-4c0d-48ce-aba5-e187a3321333</MessageID>
+  <Priority>High</Priority>
+  <RequiresAck>false</RequiresAck>
+  <Sender>
+    <SeaBasin>Atlantic</SeaBasin>
+    <ServiceID>rc.jrc.cisesimcli1.vessel.push.cons</ServiceID>
+    <ServiceOperation>Push</ServiceOperation>
+    <ServiceRole>Consumer</ServiceRole>
+    <ServiceStatus>Online</ServiceStatus>
+    <ServiceType>VesselService</ServiceType>
+  </Sender>
+  <Recipient>
+    <SeaBasin>Atlantic</SeaBasin>
+    <ServiceID>rc.jrc.cisesimcli2.vessel.push.prov</ServiceID>
+    <ServiceOperation>Push</ServiceOperation>
+    <ServiceRole>Provider</ServiceRole>
+    <ServiceStatus>Online</ServiceStatus>
+    <ServiceType>VesselService</ServiceType>
+  </Recipient>
+  <Payload xsi:type="ns4:XmlEntityPayload" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <InformationSecurityLevel>NonClassified</InformationSecurityLevel>
+    <InformationSensitivity>Amber</InformationSensitivity>
+    <IsPersonalData>false</IsPersonalData>
+    <Purpose>BorderMonitoring</Purpose>
+    <RetentionPeriod>2021-03-12T12:07:28.747+01:00</RetentionPeriod>
+    <EnsureEncryption>false</EnsureEncryption>
+    <Vessel>
+      <Name>Nordautumn</Name>
+      <IMONumber>9323038</IMONumber>
+    </Vessel>
+  </Payload>
+  <PullType>Request</PullType>
+  <ResponseTimeOut>1000</ResponseTimeOut>
+  <PayloadSelector>
+    <Selectors>
+      <Selector>//Vessel[1]/IMONumber</Selector>
+      <Operator>EQUAL</Operator>
+    </Selectors>
+  </PayloadSelector>
+</ns4:PullRequest>
